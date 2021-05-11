@@ -1,16 +1,18 @@
 import numpy as np
+from graphviz import Digraph
 
 # Based on https://github.com/karpathy/micrograd/blob/master/micrograd/engine.py
 
 class Tensor:
-    def __init__(self, data, prev=(), op=None, *args, **kwargs):
-        self.data = data
+    def __init__(self, data, prev=(), op=lambda x: None, name=None, *args, **kwargs):
+        self.data = np.asarray(data)
         self.prev = prev
         self.grad = 0
         self.op = op
         self.grad_fn = lambda x: None
         self.broadcast_dim = None
-    
+        self.name = name
+
     def backward(self, gradient=None):
         if gradient is None:
             gradient = np.ones_like(self.data)
@@ -33,7 +35,7 @@ class Tensor:
     def __repr__(self):
         r = repr(self.data)
         return r[:10].replace('array','tensor') + r[10:]
-    
+
     def __add__(self, other):
         other = other if isinstance(other, Tensor) else Tensor(other)
         self.checkbroadcast(other)
@@ -43,7 +45,7 @@ class Tensor:
             other.grad += gradient if other.broadcast_dim is None else gradient.sum(axis=other.broadcast_dim, keepdims=True)
         out.grad_fn = grad_fn
         return out
-    
+
     def __mul__(self, other):
         other = other if isinstance(other, Tensor) else Tensor(other)
         out = Tensor(self.data * other.data, (self, other), op=self.__mul__)
@@ -52,7 +54,7 @@ class Tensor:
             other.grad += gradient * self.data
         out.grad_fn = grad_fn
         return out
-    
+
     def __pow__(self, other):
         assert isinstance(other, (int, float))
         out = Tensor(self.data ** other, (self,), op=self.__pow__)
@@ -99,10 +101,10 @@ class Tensor:
     
     def __neg__(self):
         return self * -1
-    
+
     def __radd__(self, other):
         return self + other
-    
+
     def __sub__(self, other):
         return self + (-other)
 
@@ -111,13 +113,13 @@ class Tensor:
 
     def __rmul__(self, other):
         return self * other
-    
+
     def __truediv__(self, other):
         return self * (other**-1)
 
     def __rtruediv__(self, other):
         return other * self**-1
-    
+
     @property
     def shape(self):
         return self.data.shape
@@ -125,7 +127,7 @@ class Tensor:
     @property
     def dtype(self):
         return self.data.dtype
-    
+
     def checkbroadcast(self, other):
         for n,(i,j) in enumerate(zip(self.shape, other.shape)):
             if i==j:
@@ -136,3 +138,24 @@ class Tensor:
             else:
                 other.broadcast_dim = n
                 break
+
+    def generate_graph(self):
+        dot = Digraph(comment='DAG')
+        visited = set()
+        def build_graph(t):
+            if t not in visited:
+                visited.add(t)
+                if t.name:
+                    nm = t.name
+                    shape = "box"
+                    color = ""
+                else:
+                    nm = t.op.__name__
+                    shape = ""
+                    color = "lightblue2"
+                dot.node(str(hash(t)), nm, shape=shape, color=color, style='filled')
+                for p in t.prev:
+                    dot.edge(str(hash(p)), str(hash(t)))
+                    build_graph(p)
+        build_graph(self)
+        return dot
