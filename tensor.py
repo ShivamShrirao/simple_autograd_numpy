@@ -1,5 +1,7 @@
 import numpy as np
 
+# Based on https://github.com/karpathy/micrograd/blob/master/micrograd/engine.py
+
 class Tensor:
     def __init__(self, data, prev=(), op=None, *args, **kwargs):
         self.data = data
@@ -20,13 +22,12 @@ class Tensor:
 
     def __repr__(self):
         r = repr(self.data)
-        r = r[:10].replace('array','tensor') + r[10:]
-        return r
+        return r[:10].replace('array','tensor') + r[10:]
     
     def __add__(self, other):
         other = other if isinstance(other, Tensor) else Tensor(other)
         self.checkbroadcast(other)
-        out = Tensor(self.data + other.data, (self, other), op='+')
+        out = Tensor(self.data + other.data, (self, other), op=self.__add__)
         def grad_fn(gradient):
             self.grad += gradient if self.broadcast_dim is None else gradient.sum(axis=self.broadcast_dim, keepdims=True)
             other.grad += gradient if other.broadcast_dim is None else gradient.sum(axis=other.broadcast_dim, keepdims=True)
@@ -35,7 +36,7 @@ class Tensor:
     
     def __mul__(self, other):
         other = other if isinstance(other, Tensor) else Tensor(other)
-        out = Tensor(self.data * other.data, (self, other), op='*')
+        out = Tensor(self.data * other.data, (self, other), op=self.__mul__)
         def grad_fn(gradient):
             self.grad += gradient * other.data
             other.grad += gradient * self.data
@@ -44,14 +45,14 @@ class Tensor:
     
     def __pow__(self, other):
         assert isinstance(other, (int, float))
-        out = Tensor(self.data ** other, (self,), op='*')
+        out = Tensor(self.data ** other, (self,), op=self.__pow__)
         def grad_fn(gradient):
             self.grad += gradient * (other * (self.data ** (other-1)))
         out.grad_fn = grad_fn
         return out
 
     def __matmul__(self, other):
-        out = Tensor(self.data @ other.data, (self, other), op='@')
+        out = Tensor(self.data @ other.data, (self, other), op=self.__matmul__)
         def grad_fn(gradient):
             self.grad += gradient @ other.data.T
             other.grad += self.data.T @ gradient
@@ -59,28 +60,28 @@ class Tensor:
         return out
     
     def relu(self):
-        out = Tensor(self.data*(self.data>0), (self,), op='relu')
+        out = Tensor(self.data*(self.data>0), (self,), op=self.relu)
         def grad_fn(gradient):
             self.grad += gradient * (out.data > 0)
         out.grad_fn = grad_fn
         return out
 
     def sin(self):
-        out = Tensor(np.sin(self.data), (self,), op='sin')
+        out = Tensor(np.sin(self.data), (self,), op=self.sin)
         def grad_fn(gradient):
             self.grad += gradient * np.cos(self.data)
         out.grad_fn = grad_fn
         return out
 
     def exp(self):
-        out = Tensor(np.exp(self.data), (self,), op='exp')
+        out = Tensor(np.exp(self.data), (self,), op=self.exp)
         def grad_fn(gradient):
             self.grad += gradient * out.data
         out.grad_fn = grad_fn
         return out
 
     def log(self):
-        out = Tensor(np.log(self.data), (self,), op='log')
+        out = Tensor(np.log(self.data), (self,), op=self.log)
         def grad_fn(gradient):
             self.grad += gradient * (1. / self.data)
         out.grad_fn = grad_fn
