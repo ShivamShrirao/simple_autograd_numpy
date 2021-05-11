@@ -1,6 +1,7 @@
 # simple_autograd_numpy
 
 A simple autograd implementation and tests based on https://github.com/karpathy/micrograd/blob/master/micrograd/engine.py
+
 Just for learning.
 
 ```python
@@ -28,7 +29,7 @@ print(a.grad, b.grad, c.grad, d.grad, e.grad, f.grad)
 
 a = Tensor(np.array([2], dtype=np.float32), name='a')
 
-def f(a):
+def fn(a):
     b = a.sin()
     c = a.log()
     d = c/b*a
