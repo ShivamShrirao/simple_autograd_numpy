@@ -15,10 +15,20 @@ class Tensor:
         if gradient is None:
             gradient = np.ones_like(self.data)
         self.grad = gradient
-        self.grad_fn(self.grad)
-        self.grad_fn = lambda x: None
-        for p in self.prev:
-            p.backward(p.grad)
+
+        topo = []
+        visited = set()
+        def build_topo(t):
+            if t not in visited:
+                visited.add(t)
+                for p in t.prev:
+                    build_topo(p)
+                topo.append(t)
+
+        build_topo(self)
+
+        for t in reversed(topo):
+            t.grad_fn(t.grad)
 
     def __repr__(self):
         r = repr(self.data)
