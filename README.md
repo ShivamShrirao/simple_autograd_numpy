@@ -15,27 +15,28 @@ d = (a * b).sin()
 e = (c - (a / b)).exp()
 f = d + e
 y = (f * f * f * f).log() * c
-y
-tensor([30.863823], dtype=float32)
+print(y)
+# tensor([30.863823], dtype=float32)
 
-a.grad, b.grad, c.grad, d.grad, e.grad, f.grad
-
-(array([-6.3461523], dtype=float32),
- array([2.4101915], dtype=float32),
- array([21.454475], dtype=float32),
- array([0.9166051], dtype=float32),
- array([0.9166051], dtype=float32),
- array([0.9166051], dtype=float32))
+print(a.grad, b.grad, c.grad, d.grad, e.grad, f.grad)
+# (array([-6.3461523], dtype=float32),
+#  array([2.4101915], dtype=float32),
+#  array([21.454475], dtype=float32),
+#  array([0.9166051], dtype=float32),
+#  array([0.9166051], dtype=float32),
+#  array([0.9166051], dtype=float32))
 
 a = Tensor(np.array([2], dtype=np.float32), name='a')
 
-def fn(a):
+def f(a):
     b = a.sin()
     c = a.log()
     d = c/b*a
-    return (c+d-a).exp()
+    return (c+d/a).exp()
 
 e = fn(a)
+print(e)
+# tensor([4.286352], dtype=float32)
 
 e.backward()
 
