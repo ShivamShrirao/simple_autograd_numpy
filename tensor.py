@@ -64,6 +64,7 @@ class Tensor:
         return out
 
     def __matmul__(self, other):
+        other = other if isinstance(other, Tensor) else Tensor(other)
         out = Tensor(self.data @ other.data, (self, other), op=self.__matmul__)
         def grad_fn(gradient):
             self.grad += gradient @ other.data.T
@@ -74,7 +75,14 @@ class Tensor:
     def relu(self):
         out = Tensor(self.data*(self.data>0), (self,), op=self.relu)
         def grad_fn(gradient):
-            self.grad += gradient * (out.data > 0)
+            self.grad += gradient * (self.data > 0)
+        out.grad_fn = grad_fn
+        return out
+
+    def sigmoid(self):
+        out = Tensor(1.0 / (1 + np.exp(-self.data)), (self,), op=self.sigmoid)
+        def grad_fn(gradient):
+            self.grad += gradient * (out.data * (1 - out.data))
         out.grad_fn = grad_fn
         return out
 
